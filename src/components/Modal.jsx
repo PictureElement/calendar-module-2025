@@ -1,7 +1,6 @@
 import { forwardRef, useState } from "react"
 import bsmBanner from "../assets/bsm-banner.png"
 import { format, isValid, parseISO } from "date-fns"
-import DOMPurify from "dompurify"
 import CloseIcon from "../assets/x.svg?react"
 import SimpleBar from "simplebar-react"
 import * as ics from "ics"
@@ -9,6 +8,7 @@ import { saveAs } from "file-saver"
 import Skeleton from "react-loading-skeleton"
 import "simplebar-react/dist/simplebar.min.css"
 import slugify from "@sindresorhus/slugify"
+import { normalizeHeadingsAndSanitize } from "../lib/utils"
 
 const Modal = forwardRef(function Modal({ event, onModalClose }, ref) {
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -50,7 +50,8 @@ const Modal = forwardRef(function Modal({ event, onModalClose }, ref) {
   const modifiedLocalFormatted = isValid(eventModified) ? format(eventModified, "dd/MM/yyyy 'at' HH:mm") : <span className="text-muted">Invalid modified date</span>;
 
   // Sanitize description HTML and check if there's any text content
-  const cleanDescription = DOMPurify.sanitize(description); // Sanitized description
+  // const cleanDescription = DOMPurify.sanitize(description); // Sanitized description
+  const cleanDescription = normalizeHeadingsAndSanitize(description); // Sanitized description
   const descriptionText = cleanDescription.replace(/<[^>]*>/g, "").trim(); // Remove all html tags, leading/trailing whitespaces and line breaks
   const hasDescriptionText = descriptionText.length > 0;
 

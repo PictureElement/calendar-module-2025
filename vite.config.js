@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite'
+import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import react from '@vitejs/plugin-react'
 import svgr from "vite-plugin-svgr"
 import UnoCSS from 'unocss/vite'
@@ -10,6 +11,7 @@ import {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
+    nodePolyfills(), // Polyfill Node core modules required by sanitize-html in the browser
     react(),
     svgr(),
     UnoCSS({
