@@ -12,7 +12,6 @@
   "dependencies": {
     "@sindresorhus/slugify": "^3.0.0",
     "date-fns": "^4.1.0",
-    "date-fns-tz": "^3.2.0",
     "dompurify": "^3.2.6",
     "file-saver": "^2.0.5",
     "ics": "^3.8.1",
