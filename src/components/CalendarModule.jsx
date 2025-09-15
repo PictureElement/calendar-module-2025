@@ -7,7 +7,7 @@ import Modal from "./Modal"
 import calendarIcon from "../assets/calendar.svg"
 import Skeleton from "react-loading-skeleton"
 import "react-loading-skeleton/dist/skeleton.css"
-import { isWithinInterval, isAfter } from "date-fns"
+import { isWithinInterval, isAfter, parseISO, isValid } from "date-fns"
 
 export default function CalendarModule() {
   const [events, setEvents] = useState([]);
@@ -19,39 +19,55 @@ export default function CalendarModule() {
 
   // Check if event is running or upcoming
   function IsRunningOrUpcomingEvent(start, end, now) {
-    const isRunningEvent = isWithinInterval(now, {
-      start: start,
-      end: end
-    });
-    const isUpcomingEvent = isAfter(start, now);
+    let isRunningEvent;
+    if (isValid(start) && isValid(end)) {
+      isRunningEvent = isWithinInterval(now, {
+        start,
+        end,
+      });
+    } else {
+      isRunningEvent = false;
+    }
+    let isUpcomingEvent;
+    if (isValid(start)) {
+      isUpcomingEvent = isAfter(start, now);
+    } else {
+      isUpcomingEvent = false;
+    }
     return isRunningEvent || isUpcomingEvent;
   }
 
   // Keep only events that are currently happening or haven't started yet
-  const runningOrUpcomingEvents = events?.filter((event) => {
+  const runningOrUpcomingEvents = events.filter((event) => {
     const {
-      EventStartDate: eventStartUtcIso,
-      EventEndDate: eventEndUtcIso,
+      EventStartDate: eventStartUtcIso = null,
+      EventEndDate: eventEndUtcIso = null,
     } = event ?? {}
-    const eventStart = new Date(eventStartUtcIso);
-    const eventEnd = new Date(eventEndUtcIso);
+    const eventStart = (typeof eventStartUtcIso === "string" && eventStartUtcIso) ? parseISO(eventStartUtcIso) : null;
+    const eventEnd = (typeof eventEndUtcIso === "string" && eventEndUtcIso) ? parseISO(eventEndUtcIso) : null;
     return IsRunningOrUpcomingEvent(eventStart, eventEnd, now);
   });
 
   // Sort function for comparing two events by their start date in Unix time
   function compareNumbers(a, b) {
     const {
-      EventStartDate: aEventStartUtcIso,
+      EventStartDate: aEventStartUtcIso = null,
     } = a ?? {};
     const {
-      EventStartDate: bEventStartUtcIso,
+      EventStartDate: bEventStartUtcIso = null,
     } = b ?? {};
+
+    const aEventStart = (typeof aEventStartUtcIso === "string" && aEventStartUtcIso) ? parseISO(aEventStartUtcIso) : null;
+    const bEventStart = (typeof bEventStartUtcIso === "string" && bEventStartUtcIso) ? parseISO(bEventStartUtcIso) : null;
+    const aEventStartMs = isValid(aEventStart) ? aEventStart.getTime() : null;
+    const bEventStartMs = isValid(bEventStart) ? bEventStart.getTime() : null;
+
     // Sort is faster with numbers
-    return Date.parse(aEventStartUtcIso) - Date.parse(bEventStartUtcIso)
+    return aEventStartMs - bEventStartMs;
   }
 
   // Sort chronologically so users see the earliest events first
-  const eventsByStartDate = runningOrUpcomingEvents?.sort(compareNumbers);
+  const eventsByStartDate = runningOrUpcomingEvents.sort(compareNumbers);
 
   // Handle modal open
   function handleModalOpen(event) {
@@ -66,7 +82,7 @@ export default function CalendarModule() {
   // Fetch events on mount
   useEffect(() => {
     async function startFetching() {
-      if (!ignore) setEvents(null);
+      if (!ignore) setEvents([]);
       const events = await fetchEvents();
       // console.log("Fetched events:", events);
       if (!ignore) {
@@ -89,8 +105,6 @@ export default function CalendarModule() {
       modal.close();
     } else if (!modal.open && selectedEvent) {
       modal.showModal();
-      // // Focus the close button after opening
-      // if (closeButtonRef.current) closeButtonRef.current.focus();
     }
   }, [selectedEvent]);
 
@@ -108,8 +122,10 @@ export default function CalendarModule() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [selectedEvent]);
 
+  console.log(eventsByStartDate);
+
   // Event list or loading skeletons
-  const EventList = eventsByStartDate
+  const EventList = eventsByStartDate.length > 0
     ? (
       <ul className="event-list">
         {eventsByStartDate.map((event) => (
@@ -121,7 +137,7 @@ export default function CalendarModule() {
     ) : (
       <ul className="event-list">
         {[...Array(8)].map((_, idx) => (
-          <li className="event-list__item leading-none" key={idx}>
+          <li style={{ lineHeight: 1 }} className="event-list__item" key={idx}> {/* lineHeight: 1 ensures the container height matches the Skeleton's exact height */}
             <Skeleton
               height={45}
               borderRadius={0}
