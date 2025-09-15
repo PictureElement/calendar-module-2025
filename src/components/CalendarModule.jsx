@@ -123,7 +123,7 @@ export default function CalendarModule() {
         {[...Array(8)].map((_, idx) => (
           <li className="event-list__item leading-none" key={idx}>
             <Skeleton
-              height={40}
+              height={45}
               borderRadius={0}
               baseColor={idx % 2 === 0 ? '#f3f2f1' : '#ffffff'}
             />
