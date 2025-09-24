@@ -8,3 +8,5 @@
 
 3. Start the dev server:
 - `npm run dev`
+
+## If the API is unavailable, you can refer to the sample event data in `/events.json`, which contains the JSON response structure for the events.
