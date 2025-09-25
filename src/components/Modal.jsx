@@ -42,10 +42,15 @@ const Modal = forwardRef(function Modal({ event, onModalClose }, ref) {
   // Human-friendly local formats
   const startLocalFormatted = isValid(eventStart)
     ? (fullDayEvent === "TRUE" // Use date for full‑day events, and date + 24‑hour time for timed events.
-      ? format(eventStart, "eee, dd MMM yyyy")
+      ? format(eventStart, "eee, dd MMM yyyy") // format() uses the environment's local timezone.
       : format(eventStart, "eee, dd MMM yyyy, HH:mm"))
     : <span className="text-muted">Invalid start date</span>;
-  const endLocalFormatted = isValid(eventEnd) ? format(eventEnd, "eee, dd MMM yyyy, HH:mm") : <span className="text-muted">Invalid end date</span>;
+  const endLocalFormatted = isValid(eventEnd)
+    ? (fullDayEvent === "TRUE" // Use "Full Day Event" for full‑day events, and date + 24‑hour time for timed events.
+      ? "Full Day Event"
+      : format(eventEnd, "eee, dd MMM yyyy, HH:mm"))
+    : <span className="text-muted">Invalid end date</span>;
+
   const createdLocalFormatted = isValid(eventCreated) ? format(eventCreated, "dd/MM/yyyy 'at' HH:mm") : <span className="text-muted">Invalid created date</span>;
   const modifiedLocalFormatted = isValid(eventModified) ? format(eventModified, "dd/MM/yyyy 'at' HH:mm") : <span className="text-muted">Invalid modified date</span>;
 
@@ -146,13 +151,16 @@ const Modal = forwardRef(function Modal({ event, onModalClose }, ref) {
               <div className="modal__detail">
                 <h2 className="modal__heading">{fullDayEvent === 'TRUE' ? "DATE" : "DATE AND TIME"}</h2>
                 <div className="modal__datetime">
+                  <time dateTime={isValid(eventStart) ? eventStartUtcIso : undefined}>{startLocalFormatted}</time>
                   {fullDayEvent === 'TRUE' ? (
                     <>
-                      <time dateTime={isValid(eventStart) ? eventStartUtcIso : undefined}>{startLocalFormatted}</time> - Full Day Event
+                      {" "}-{" "}
+                      <span>{endLocalFormatted}</span>
                     </>
                   ) : (
                     <>
-                      <time dateTime={isValid(eventStart) ? eventStartUtcIso : undefined}>{startLocalFormatted}</time>—<time dateTime={isValid(eventEnd) ? eventEndUtcIso : undefined}>{endLocalFormatted}</time>
+                      —
+                      <time dateTime={isValid(eventEnd) ? eventEndUtcIso : undefined}>{endLocalFormatted}</time> <span className="text-muted">(your local time)</span>
                     </>
                   )}
                 </div>
