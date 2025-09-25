@@ -205,8 +205,8 @@ const Modal = forwardRef(function Modal({ event, onModalClose }, ref) {
             </aside>
           </div>
           <footer className="modal__footer">
-            <p>Created by {author} on {createdLocalFormatted}</p>
-            <p>Modified by {editor} on {modifiedLocalFormatted}</p>
+            <p>Created by {author} on {createdLocalFormatted} <span className="text-muted">(your local time)</span></p>
+            <p>Modified by {editor} on {modifiedLocalFormatted} <span className="text-muted">(your local time)</span></p>
           </footer>
         </section>
       )}
