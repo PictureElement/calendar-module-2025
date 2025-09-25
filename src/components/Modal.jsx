@@ -1,6 +1,6 @@
 import { forwardRef, useState } from "react"
 import bsmBanner from "../assets/bsm-banner.png"
-import { format, isValid, parseISO } from "date-fns"
+import { format, isValid, parseISO, add, getYear, getMonth, getDate } from "date-fns"
 import CloseIcon from "../assets/x.svg?react"
 import SimpleBar from "simplebar-react"
 import * as ics from "ics"
@@ -67,24 +67,47 @@ const Modal = forwardRef(function Modal({ event, onModalClose }, ref) {
     }
   }
 
-  const canCreateICS = isValid(eventStart);
+  const canCreateICS = isValid(eventStart); // A start datetime is required for an .ics file
   const locationParts = [addressLine1, city, postCode, country].map(part => (typeof part === "string" ? part.trim() : part)).filter(Boolean);
 
   // Generate an iCal-compliant event, construct a blob from it, and trigger a download
   function handleAddToCalendar() {
     if (!canCreateICS) return;
 
-    // Base options
-    const icsOptions = {
-      start: eventStartMs, // Required property
-      startInputType: "utc",
-      startOutputType: "utc",
-      title,
-      categories: [category]
+    let icsOptions;
+
+    if (fullDayEvent === "TRUE") {
+      const s = eventStart;
+      const sYear = s.getUTCFullYear();
+      const sMonthIndex = s.getUTCMonth() // 0-based month
+      const sDate = s.getUTCDate();
+
+      // The date of the end property should be the day after your all-day event. 
+      const e = new Date(Date.UTC(sYear, sMonthIndex, sDate + 1));
+      const eYear = e.getUTCFullYear();
+      const eMonthIndex = e.getUTCMonth(); // 0-based month
+      const eDate = e.getUTCDate();
+
+      icsOptions = { // Options for full day events
+        start: [sYear, sMonthIndex + 1, sDate], // 1-based month for ICS
+        end: [eYear, eMonthIndex + 1, eDate], // 1-based month for ICS
+        title,
+        categories: [category]
+      }
+    } else {
+      // Base options
+      icsOptions = { // Options for timed events
+        start: eventStartMs, // Required property
+        startInputType: "utc",
+        startOutputType: "utc",
+        title,
+        categories: [category]
+      }
+      // Add optional properties if valid
+      if (isValid(eventEnd)) icsOptions.end = eventEndMs;
     }
 
     // Add optional properties if valid
-    if (isValid(eventEnd)) icsOptions.end = eventEndMs;
     if (locationParts.length > 0) {
       icsOptions.location = locationParts.join(", ");
     }
