@@ -1,16 +1,17 @@
-import { useState, useEffect, useRef } from "react"
-import { createPortal } from "react-dom"
-import { fetchEvents } from "../api"
-import Heading from "./Heading"
-import Event from "./Event"
-import Modal from "./Modal"
-import calendarIcon from "../assets/calendar.svg"
-import Skeleton from "react-loading-skeleton"
-import "react-loading-skeleton/dist/skeleton.css"
-import { isWithinInterval, isAfter, parseISO, isValid } from "date-fns"
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { fetchEvents } from '../api';
+import Heading from './Heading';
+import Event from './Event';
+import Modal from './Modal';
+import calendarIcon from '../assets/calendar.svg';
+import Skeleton from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
+import { isWithinInterval, isAfter, parseISO, isValid } from 'date-fns';
 
 export default function CalendarModule() {
   const [events, setEvents] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const modalRef = useRef(null);
 
@@ -39,26 +40,28 @@ export default function CalendarModule() {
 
   // Keep only events that are currently happening or haven't started yet
   const runningOrUpcomingEvents = events.filter((event) => {
-    const {
-      EventStartDate: eventStartUtcIso = null,
-      EventEndDate: eventEndUtcIso = null,
-    } = event ?? {}
-    const eventStart = (typeof eventStartUtcIso === "string" && eventStartUtcIso) ? parseISO(eventStartUtcIso) : null;
-    const eventEnd = (typeof eventEndUtcIso === "string" && eventEndUtcIso) ? parseISO(eventEndUtcIso) : null;
+    const { EventStartDate: eventStartUtcIso = null, EventEndDate: eventEndUtcIso = null } =
+      event ?? {};
+    const eventStart =
+      typeof eventStartUtcIso === 'string' && eventStartUtcIso ? parseISO(eventStartUtcIso) : null;
+    const eventEnd =
+      typeof eventEndUtcIso === 'string' && eventEndUtcIso ? parseISO(eventEndUtcIso) : null;
     return IsRunningOrUpcomingEvent(eventStart, eventEnd, now);
   });
 
   // Sort function for comparing two events by their start date in Unix time
   function compareNumbers(a, b) {
-    const {
-      EventStartDate: aEventStartUtcIso = null,
-    } = a ?? {};
-    const {
-      EventStartDate: bEventStartUtcIso = null,
-    } = b ?? {};
+    const { EventStartDate: aEventStartUtcIso = null } = a ?? {};
+    const { EventStartDate: bEventStartUtcIso = null } = b ?? {};
 
-    const aEventStart = (typeof aEventStartUtcIso === "string" && aEventStartUtcIso) ? parseISO(aEventStartUtcIso) : null;
-    const bEventStart = (typeof bEventStartUtcIso === "string" && bEventStartUtcIso) ? parseISO(bEventStartUtcIso) : null;
+    const aEventStart =
+      typeof aEventStartUtcIso === 'string' && aEventStartUtcIso
+        ? parseISO(aEventStartUtcIso)
+        : null;
+    const bEventStart =
+      typeof bEventStartUtcIso === 'string' && bEventStartUtcIso
+        ? parseISO(bEventStartUtcIso)
+        : null;
     const aEventStartMs = isValid(aEventStart) ? aEventStart.getTime() : null;
     const bEventStartMs = isValid(bEventStart) ? bEventStart.getTime() : null;
 
@@ -82,11 +85,15 @@ export default function CalendarModule() {
   // Fetch events on mount
   useEffect(() => {
     async function startFetching() {
-      if (!ignore) setEvents([]);
+      if (!ignore) {
+        setEvents([]);
+        setIsLoading(true);
+      }
       const events = await fetchEvents();
-      // console.log("Fetched events:", events);
+      console.log('Fetched events:', events);
       if (!ignore) {
         setEvents(events);
+        setIsLoading(false);
       }
     }
     let ignore = false;
@@ -114,30 +121,23 @@ export default function CalendarModule() {
   // so the UI and selectedEvent state stay in sync.
   useEffect(() => {
     const onKeyDown = (e) => {
-      if (e.key === "Escape") {
+      if (e.key === 'Escape') {
         handleModalClose();
       }
     };
-    if (selectedEvent) window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    if (selectedEvent) window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, [selectedEvent]);
 
-  console.log(eventsByStartDate);
+  // console.log(eventsByStartDate);
 
-  // Event list or loading skeletons
-  const EventList = eventsByStartDate.length > 0
-    ? (
-      <ul className="event-list">
-        {eventsByStartDate.map((event) => (
-          <li className="event-list__item" key={event.ID}>
-            <Event event={event} onModalOpen={handleModalOpen} now={now} />
-          </li>
-        ))}
-      </ul>
-    ) : (
+  let EventListContent;
+
+  if (isLoading) {
+    EventListContent = (
       <ul className="event-list">
         {[...Array(8)].map((_, idx) => (
-          <li style={{ lineHeight: 1 }} className="event-list__item" key={idx}> {/* lineHeight: 1 ensures the container height matches the Skeleton's exact height */}
+          <li style={{ lineHeight: 1 }} className="event-list__item" key={idx}>
             <Skeleton
               height={45}
               borderRadius={0}
@@ -147,17 +147,35 @@ export default function CalendarModule() {
         ))}
       </ul>
     );
+  } else if (eventsByStartDate.length > 0) {
+    EventListContent = (
+      <ul className="event-list">
+        {eventsByStartDate.map((event) => (
+          <li className="event-list__item" key={event.ID}>
+            <Event event={event} onModalOpen={handleModalOpen} now={now} />
+          </li>
+        ))}
+      </ul>
+    );
+  } else {
+    EventListContent = (
+      <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+        <p>There are no upcoming events at this time.</p>
+      </div>
+    );
+  }
 
   return (
     <section className="calendar-module">
       <Heading levelOffset={0} className="calendar-module__heading">
         <img src={calendarIcon} width="24" height="24" alt="Calendar icon" /> Upcoming Events
       </Heading>
-      {EventList}
-      {selectedEvent && createPortal(
-        <Modal event={selectedEvent} onModalClose={handleModalClose} ref={modalRef} />,
-        document.body
-      )}
-    </section >
-  )
+      {EventListContent}
+      {selectedEvent &&
+        createPortal(
+          <Modal event={selectedEvent} onModalClose={handleModalClose} ref={modalRef} />,
+          document.body
+        )}
+    </section>
+  );
 }
